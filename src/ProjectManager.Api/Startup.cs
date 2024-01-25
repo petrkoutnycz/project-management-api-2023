@@ -37,7 +37,8 @@ public class Startup
             options.SignIn.RequireConfirmedAccount = true
             )
             .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddSignInManager();
+            .AddSignInManager()
+            .AddDefaultTokenProviders();
 
         services.Configure<IdentityOptions>(options =>
         {

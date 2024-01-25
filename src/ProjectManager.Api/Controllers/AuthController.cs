@@ -16,16 +16,19 @@ namespace ProjectManager.Api.Controllers;
 [ApiController]
 public class AuthController : ControllerBase
 {
+    private readonly EmailSenderService _emailService;
     private readonly IClock _clock;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
 
     public AuthController(
+        EmailSenderService emailService,
         IClock clock,
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager
         )
     {
+        _emailService = emailService;
         _clock = clock; 
         _signInManager = signInManager;
         _userManager = userManager;
@@ -47,7 +50,6 @@ public class AuthController : ControllerBase
             FullName = model.Name,
             Email = model.Email,
             UserName = model.Email,
-            EmailConfirmed = true,
         }.SetCreateBySystem(now);
 
         var checkPassword = await validator.ValidateAsync(_userManager, newUser, model.Password);
@@ -61,14 +63,26 @@ public class AuthController : ControllerBase
 
         await _userManager.CreateAsync(newUser);
         await _userManager.AddPasswordAsync(newUser, model.Password);
+        var token = string.Empty;
+        token = await _userManager.GenerateEmailConfirmationTokenAsync(newUser);
 
-        return Ok();
+        await _emailService.AddEmailToSendAsync(
+            model.Email,
+            "Potvrzení registrace",
+            $"<a href=\"https://www.projectmanagement.cz/?token={Uri.EscapeDataString(token)}&email={model.Email}\">{token}</a>"
+            );
+
+        return Ok(token);
     }
 
     [HttpPost("api/v1/Auth/Login")]
     public async Task<ActionResult> Login([FromBody] LoginModel model)
     {
-        var user = await _userManager.FindByNameAsync(model.Email);
+        var normalizedEmail = model.Email.ToUpperInvariant();
+        var user = await _userManager
+            .Users
+            .SingleOrDefaultAsync(x => x.EmailConfirmed && x.NormalizedEmail == normalizedEmail)
+            ;
 
         if (user == null)
         {
@@ -87,6 +101,37 @@ public class AuthController : ControllerBase
         await HttpContext.SignInAsync(userPrincipal);
 
         return Ok();
+    }
+
+    /// <summary>
+    /// unascape token before sending
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPost("api/v1/Auth/ValidateToken")]
+    public async Task<ActionResult> ValidateToken(
+        [FromRoute] TokenModel model
+        )
+    {
+        var normalizedMail = model.Email.ToUpperInvariant();
+        var user = await _userManager
+            .Users
+            .SingleOrDefaultAsync(x => !x.EmailConfirmed && x.NormalizedEmail == normalizedMail);
+
+        if (user == null)
+        {
+            ModelState.AddModelError<TokenModel>(x => x.Token, "INVALID_TOKEN");
+            return ValidationProblem(ModelState);
+        }
+
+        var check = await _userManager.ConfirmEmailAsync(user, model.Token);
+        if (!check.Succeeded)
+        {
+            ModelState.AddModelError<TokenModel>(x => x.Token, "INVALID_TOKEN");
+            return ValidationProblem(ModelState);
+        }
+
+        return NoContent();
     }
 
     [HttpGet("api/v1/Auth/UserInfo")]
