@@ -15,7 +15,7 @@ using ProjectManager.Data.Entities;
 using ProjectManager.Data.Interfaces;
 
 namespace ProjectManager.Api.Controllers;
-//[Authorize] - ONLY FOR TESTING PURPOSES!
+[Authorize]
 [ApiController]
 public class ProjectController : ControllerBase
 {

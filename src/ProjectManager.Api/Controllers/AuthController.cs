@@ -100,7 +100,7 @@ public class AuthController : ControllerBase
         var userPrincipal = await _signInManager.CreateUserPrincipalAsync(user);
         await HttpContext.SignInAsync(userPrincipal);
 
-        return Ok();
+        return NoContent();
     }
 
     /// <summary>

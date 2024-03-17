@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Configuration.Json;
+using ProjectManager.Data;
+using System;
 
 namespace ProjectManager.Api;
 public static class Program
@@ -7,9 +9,18 @@ public static class Program
 
     public static async Task Main(string[] args)
     {
-            var builder = CreateHostBuilder(args);
-            var host = builder.Build();
-            await host.RunAsync();
+        var builder = CreateHostBuilder(args);
+        var host = builder.Build();
+        await MigrateDb(host);
+        await host.RunAsync();
+    }
+
+    private static async Task MigrateDb(IHost host)
+    {
+        using var scope = host.Services.CreateScope();
+
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await dbContext.Database.MigrateAsync();
     }
 
     public static IHostBuilder CreateHostBuilder(string[] args)
