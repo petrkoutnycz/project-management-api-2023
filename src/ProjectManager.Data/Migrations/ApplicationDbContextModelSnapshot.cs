@@ -42,7 +42,7 @@ namespace ProjectManager.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UserClaims");
+                    b.ToTable("UserClaims", (string)null);
                 });
 
             modelBuilder.Entity("ProjectManager.Data.Entities.ApplicationUser", b =>
@@ -118,7 +118,7 @@ namespace ProjectManager.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ApsNetUser");
+                    b.ToTable("ApsNetUser", (string)null);
                 });
 
             modelBuilder.Entity("ProjectManager.Data.Entities.Email", b =>
@@ -171,7 +171,7 @@ namespace ProjectManager.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Email");
+                    b.ToTable("Email", (string)null);
                 });
 
             modelBuilder.Entity("ProjectManager.Data.Entities.Project", b =>
@@ -209,7 +209,7 @@ namespace ProjectManager.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Projects");
+                    b.ToTable("Projects", (string)null);
                 });
 
             modelBuilder.Entity("ProjectManager.Data.Entities.Status", b =>
@@ -252,7 +252,7 @@ namespace ProjectManager.Data.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.ToTable("Status");
+                    b.ToTable("Status", (string)null);
                 });
 
             modelBuilder.Entity("ProjectManager.Data.Entities.Todo", b =>
@@ -300,7 +300,7 @@ namespace ProjectManager.Data.Migrations
 
                     b.HasIndex("StatusId");
 
-                    b.ToTable("Todo");
+                    b.ToTable("Todo", (string)null);
                 });
 
             modelBuilder.Entity("ProjectManager.Data.Entities.Status", b =>
