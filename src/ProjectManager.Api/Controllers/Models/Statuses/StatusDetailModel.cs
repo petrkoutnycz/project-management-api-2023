@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using NodaTime;
 using ProjectManager.Api.Controllers.Models.InnerModels;
 using ProjectManager.Api.Controllers.Models.Todos;
@@ -18,7 +18,7 @@ public class StatusDetailModel
     public GenericInnerModel Project { get; set; } = null!;
 
     [JsonProperty("todos")]
-    public IEnumerable<TodoDetailModel> Todos { get; set; } = Enumerable.Empty<TodoDetailModel>();
+    public IEnumerable<TodoDetailModel> Todos { get; set; } = [];
 
     [JsonProperty("isDone")]
     public bool IsDone { get; set; }
@@ -26,8 +26,27 @@ public class StatusDetailModel
     [JsonProperty("createdAt")]
     public Instant CreatedAt { get; set; }
 }
+
+public class StatusFilter
+{
+    public Guid? ProjectId { get; set; }
+}
+
 public static class StatusDetailModelExtensions
 {
+    public static IQueryable<Status> ApplyFilter(this IQueryable<Status> query, StatusFilter? filter)
+    {
+        if (filter != null)
+        {
+            if (filter.ProjectId != null)
+            {
+                query = query.Where(x => x.ProjectId == filter.ProjectId);
+            }
+        }
+
+        return query;
+    }
+
     public static StatusDetailModel ToDetail(this Status source)
         => new()
         {

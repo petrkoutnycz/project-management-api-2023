@@ -104,13 +104,13 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// unascape token before sending
+    /// unescape token before sending
     /// </summary>
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPost("api/v1/Auth/ValidateToken")]
     public async Task<ActionResult> ValidateToken(
-        [FromRoute] TokenModel model
+        [FromBody] TokenModel model
         )
     {
         var normalizedMail = model.Email.ToUpperInvariant();

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
@@ -31,13 +31,16 @@ public class StatusController : ControllerBase
     }
 
     [HttpGet("api/v1/Status")]
-    public async Task<ActionResult<IEnumerable<StatusDetailModel>>> GetList()
+    public async Task<ActionResult<IEnumerable<StatusDetailModel>>> GetList(
+        [FromQuery] StatusFilter filter
+        )
     {
         var dbEntities = await _dbContext
             .Set<Status>()
             .Include(x => x.Todos)
             .Include(x => x.Project)
             .FilterDeleted()
+            .ApplyFilter(filter)
             .ToListAsync();
 
         return Ok(dbEntities.Select(x => x.ToDetail()));
@@ -60,16 +63,17 @@ public class StatusController : ControllerBase
 
     [HttpPost("api/v1/Status")]
     public async Task<ActionResult> Create(
-    [FromBody] StatusCreateModel sourceModel
+    [FromBody] StatusCreateModel model
     )
     {
         var now = _clock.GetCurrentInstant();
         var newEntity = new Status
         {
             Id = Guid.NewGuid(),
-            Title = sourceModel.Title,
-            ProjectId = sourceModel.ProjectId,
+            Title = model.Title,
+            ProjectId = model.ProjectId,
         }.SetCreateBySystem(now);
+
         var uniqueCheck = await _dbContext.Set<Status>().FilterDeleted().AnyAsync(x => x.Title == newEntity.Title);
         if (uniqueCheck)
         {
