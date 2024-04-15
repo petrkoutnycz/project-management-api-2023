@@ -155,7 +155,7 @@ public class ProjectController : ControllerBase
         return Ok(dbEntity.ToDetail());
     }
 
-    [HttpGet("error")]
+    [HttpGet("api/v1/Project/error")]
     public async Task<ActionResult> Error()
     {
         throw new NotImplementedException();
