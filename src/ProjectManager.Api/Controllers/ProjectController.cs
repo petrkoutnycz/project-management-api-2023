@@ -154,4 +154,10 @@ public class ProjectController : ControllerBase
         dbEntity = await _dbContext.Set<Project>().FirstAsync(x => x.Id == id);
         return Ok(dbEntity.ToDetail());
     }
+
+    [HttpGet("error")]
+    public async Task<ActionResult> Error()
+    {
+        throw new NotImplementedException();
+    }
 }
