@@ -134,7 +134,7 @@ public class ProjectController : ControllerBase
 
         patch.ApplyTo(toUpdate);
 
-        var uniqueCheck = await _dbContext.Set<Project>().AnyAsync(x => x.Title == toUpdate.Title);
+        var uniqueCheck = await _dbContext.Set<Project>().AnyAsync(x => x.Id != id && x.Title == toUpdate.Title);
 
         if (uniqueCheck)
         {
