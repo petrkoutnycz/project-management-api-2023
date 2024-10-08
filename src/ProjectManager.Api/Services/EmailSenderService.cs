@@ -20,7 +20,7 @@ public class EmailSenderService
         IClock clock,
         ApplicationDbContext dbContext,
         IOptionsSnapshot<SmtpSettings> smtpSettings
-        )
+    )
     {
         _clock = clock;
         _dbContext = dbContext;
@@ -30,7 +30,8 @@ public class EmailSenderService
     public async Task AddEmailToSendAsync(
         string receiver,
         string subject,
-        string body
+        string body,
+        CancellationToken cancellationToken = default
         )
     {
         var now = _clock.GetCurrentInstant();
@@ -44,13 +45,14 @@ public class EmailSenderService
             ScheduledAt = now,
         }.SetCreateBySystem(now);
 
-        _dbContext.Emails.Add(newMail);
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.Emails.AddAsync(newMail, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task SendEmailsAsync()
     {
         var mails = await _dbContext.Set<Email>().Where(x => x.SentAt == null).ToListAsync();
+
         foreach ( var mail in mails )
         {
             using var notif = new MailMessage
@@ -70,8 +72,11 @@ public class EmailSenderService
                 await smtp.SendAsync((MimeMessage)notif);
 
                 mail.SentAt = _clock.GetCurrentInstant();
+
+                // TODO: if it sent successfully and this fails, then it is sent twice. Right?
                 await _dbContext.SaveChangesAsync();
             }
+            // TODO: specific exceptions should be used instead
             catch (Exception ex)
             {
                 // log error, notify someone

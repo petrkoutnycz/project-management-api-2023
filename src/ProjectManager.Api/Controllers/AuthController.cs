@@ -1,6 +1,6 @@
+using System.Net.Mail;
 using Microsoft.AspNetCore.Authentication;
 using ProjectManager.Data.Interfaces;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,9 +8,11 @@ using NodaTime;
 using ProjectManager.Api.Controllers.Models.Auth;
 using ProjectManager.Data.Entities;
 using System.Security.Claims;
+using MediatR;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Authorization;
 using ProjectManager.Api.Services;
+using ProjectManager.Application.Contracts.Emails.Commands;
 
 namespace ProjectManager.Api.Controllers;
 [ApiController]
@@ -20,26 +22,28 @@ public class AuthController : ControllerBase
     private readonly IClock _clock;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly IMediator _mediator;
 
     public AuthController(
         EmailSenderService emailService,
         IClock clock,
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager
+        SignInManager<ApplicationUser> signInManager,
+        IMediator mediator
         )
     {
         _emailService = emailService;
         _clock = clock; 
         _signInManager = signInManager;
+        _mediator = mediator;
         _userManager = userManager;
     }
 
     [HttpPost("api/v1/Auth/Register")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> Register(
-       [FromBody] RegisterModel model
-       )
+    public async Task<ActionResult> Register([FromBody] RegisterModel model,
+        CancellationToken cancellationToken)
     {
         var validator = new PasswordValidator<ApplicationUser>();
         var now = _clock.GetCurrentInstant();
@@ -66,11 +70,16 @@ public class AuthController : ControllerBase
         var token = string.Empty;
         token = await _userManager.GenerateEmailConfirmationTokenAsync(newUser);
 
-        await _emailService.AddEmailToSendAsync(
-            model.Email,
-            "Potvrzení registrace",
-            $"<a href=\"https://www.projectmanagement.cz/?token={Uri.EscapeDataString(token)}&email={model.Email}\">{token}</a>"
-            );
+        // TODO: culture-specific strings in source code => resources
+        var addEmailCommand = new AddRegistrationConfirmationEmailCommand(new MailAddress(model.Email), token);
+
+        await _mediator.Send(addEmailCommand, cancellationToken);
+
+        // await _emailService.AddEmailToSendAsync(
+        //     model.Email,
+        //     "Potvrzení registrace",
+        //     $"<a href=\"https://www.projectmanagement.cz/?token={Uri.EscapeDataString(token)}&email={model.Email}\">{token}</a>"
+        //     );
 
         return Ok(token);
     }
@@ -79,6 +88,9 @@ public class AuthController : ControllerBase
     public async Task<ActionResult> Login([FromBody] LoginModel model)
     {
         var normalizedEmail = model.Email.ToUpperInvariant();
+
+        // TODO: why storing e-mails in non-normalized form?
+        // TODO: index on e-mail column?
         var user = await _userManager
             .Users
             .SingleOrDefaultAsync(x => x.EmailConfirmed && x.NormalizedEmail == normalizedEmail)

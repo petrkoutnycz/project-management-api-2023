@@ -1,6 +1,5 @@
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -8,30 +7,34 @@ using Microsoft.EntityFrameworkCore;
 using NodaTime;
 using NodaTime.Text;
 using ProjectManager.Api.Controllers.Models.Projects;
-using ProjectManager.Api.Controllers.Models.Statuses;
 using ProjectManager.Api.Controllers.Models.Todos;
+using ProjectManager.Application.Contracts.Projects.Commands;
+using ProjectManager.Application.Contracts.Projects.Queries;
 using ProjectManager.Data;
 using ProjectManager.Data.Entities;
-using ProjectManager.Data.Interfaces;
 
 namespace ProjectManager.Api.Controllers;
+
 [Authorize]
 [ApiController]
 public class ProjectController : ControllerBase
 {
-    private readonly ILogger<TodoController> _logger;
+    private readonly ILogger<ProjectController> _logger;
     private readonly IClock _clock;
     private readonly ApplicationDbContext _dbContext;
+    private readonly IMediator _mediator;
 
     public ProjectController(
-        ILogger<TodoController> logger,
+        ILogger<ProjectController> logger,
         IClock clock,
-        ApplicationDbContext dbContext
+        ApplicationDbContext dbContext,
+        IMediator mediator
         )
     {
         _clock = clock;
         _logger = logger;
         _dbContext = dbContext;
+        _mediator = mediator;
     }
 
     [HttpGet("api/v1/Project")]
@@ -52,12 +55,8 @@ public class ProjectController : ControllerBase
         [FromRoute] Guid id
         )
     {
-        var dbEntity = await _dbContext
-            .Set<Project>()
-            .Include(x => x.Todos)
-            .Include(x => x.Statuses)
-            .FilterDeleted()
-            .FirstOrDefaultAsync(x => x.Id == id);
+        var query = new GetProjectDetailQuery(id);
+        var dbEntity = await _mediator.Send(query);
 
         if (dbEntity == null)
         {
@@ -84,33 +83,10 @@ public class ProjectController : ControllerBase
     }
 
     [HttpPost("api/v1/Project")]
-    public async Task<ActionResult> Create(
-        [FromBody] ProjectCreateModel model
-        )
+    public async Task<ActionResult> Create([FromBody] ProjectCreateModel model)
     {
-        var now = _clock.GetCurrentInstant();
-
-        var newProject = new Project
-        {
-            Id = Guid.NewGuid(),
-            Title = model.Title,
-            Description = model.Description,
-        }.SetCreateBySystem(now);
-
-        var uniqueCheck = await _dbContext.Set<Project>().AnyAsync(x => x.Title == newProject.Title);
-
-        if (uniqueCheck)
-        {
-            ModelState.AddModelError<ProjectCreateModel>(x => x.Title, "title is not unique");
-        }
-
-        if (!ModelState.IsValid)
-        {
-            return ValidationProblem(ModelState);
-        }
-
-        _dbContext.Add(newProject);
-        await _dbContext.SaveChangesAsync();
+        var cmd = new AddProjectCommand(model.Title, model.Description);
+        await _mediator.Send(cmd);
 
         var dbEntity = await _dbContext.Set<Project>().FirstAsync(x => x.Id == newProject.Id);
 

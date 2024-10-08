@@ -3,9 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using NodaTime;
-using ProjectManager.Api.Controllers.Models.Projects;
 using ProjectManager.Api.Controllers.Models.Statuses;
-using ProjectManager.Api.Controllers.Models.Todos;
 using ProjectManager.Data;
 using ProjectManager.Data.Entities;
 using ProjectManager.Data.Interfaces;
@@ -61,6 +59,7 @@ public class StatusController : ControllerBase
         return dbEntity != null ? Ok(dbEntity.ToDetail()) : NotFound();
     }
 
+    // TODO: in REST, it is a common practice to send uri of created entity in headers back
     [HttpPost("api/v1/Status")]
     public async Task<ActionResult> Create(
     [FromBody] StatusCreateModel model
@@ -74,6 +73,8 @@ public class StatusController : ControllerBase
             ProjectId = model.ProjectId,
         }.SetCreateBySystem(now);
 
+        // TODO: business criteria implemented on infra level, nope please :-)
+        // TODO: you know that strings are compared case sensitive here, right? Intentional?
         var uniqueCheck = await _dbContext.Set<Status>().FilterDeleted().AnyAsync(x => x.Title == newEntity.Title);
         if (uniqueCheck)
         {

@@ -18,6 +18,7 @@ public class Email : ITrackable
 
     public string Body { get; set; } = null!;
 
+    // TODO: actually used?
     public Instant ScheduledAt { get; set; }
 
     public Instant? SentAt { get; set; }

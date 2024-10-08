@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace ProjectManager.Data.Entities;
 
+// TODO: rename to ProjectStatus
 [Table(nameof(Status))]
 public class Status : ITrackable
 {
@@ -18,6 +19,7 @@ public class Status : ITrackable
 
     public ICollection<Todo> Todos { get; set; } = new HashSet<Todo>();
 
+    // TODO: infer from Todo itself
     public bool IsDone { get; set; }
 
     public Instant CreatedAt { get; set; }

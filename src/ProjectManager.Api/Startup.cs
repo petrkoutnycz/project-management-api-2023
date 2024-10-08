@@ -54,13 +54,23 @@ public class Startup
             .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
 
         services.AddSingleton<IClock>(SystemClock.Instance);
+
+        // TODO: why scoped?
         services.AddScoped<EmailSenderService>();
+
         services.AddHostedService<EmailSenderBackgroundService>();
 
         services.Configure<SmtpSettings>(_configuration.GetSection("SmtpSettings"));
 
+        // OR:
+        // services.AddOptions<SmtpSettings>()
+        //     .Bind(_configuration.GetSection("SmtpSettings"))
+        //     .ValidateDataAnnotations()
+        //     .ValidateOnStart();
+
         services.AddControllers()
-            .AddNewtonsoftJson();
+            .AddNewtonsoftJson(); // TODO: why not System.Text.Json?
+
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
@@ -77,8 +87,12 @@ public class Startup
 
         app.UseRouting();
 
+        // who am I?
         app.UseAuthentication();
+
+        // can I?
         app.UseAuthorization();
+
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();
